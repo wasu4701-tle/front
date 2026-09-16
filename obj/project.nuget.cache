@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "J+vRBQ6ETqY=",
+  "dgSpecHash": "USlmOPGnkbI=",
   "success": true,
-  "projectFilePath": "C:\\Users\\tee\\MyBlazorApp\\MyBlazorApp.csproj",
+  "projectFilePath": "C:\\Users\\tee\\Desktop\\front\\MyBlazorApp.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\tee\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.11\\microsoft.aspnetcore.app.internal.assets.10.0.11.nupkg.sha512"
+    "C:\\Users\\tee\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.5\\microsoft.aspnetcore.app.internal.assets.10.0.5.nupkg.sha512"
   ],
   "logs": []
 }

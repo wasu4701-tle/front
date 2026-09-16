@@ -1,20 +1,33 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+# =========================
+# Build Stage
+# =========================
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
-COPY . .
+# Copy project file และ restore ก่อน
+COPY *.csproj ./
+RUN dotnet restore
 
-RUN dotnet restore "MyBlazorApp.csproj"
-RUN dotnet publish "MyBlazorApp.csproj" -c Release -o /app/publish
+# Copy source code
+COPY . ./
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
+# Publish
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+
+# =========================
+# Runtime Stage
+# =========================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:80
+# Blazor Server / ASP.NET Core
+ENV ASPNETCORE_URLS=http://+:8080
 
-EXPOSE 80
+EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "MyBlazorApp.csproj"]
+ENTRYPOINT ["dotnet", "MyBlazorApp.dll"]
