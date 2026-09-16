@@ -1,0 +1,137 @@
+@page "/customer-queue"
+@using System.Text.Json.Serialization
+@inject HttpClient Http
+
+<div class="container mt-4">
+    <h3 class="mb-4">🏥 ระบบจัดการข้อมูลคนไข้ (Patient Queue)</h3>
+
+    <!-- ส่วนที่ 1: ค้นหาด้วย ID (HosGuid) -->
+    <div class="card card-body mb-4 shadow-sm">
+        <h5 class="card-title">🔍 ค้นหาข้อมูลคนไข้รายบุคคล</h5>
+        <div class="input-group mb-3" style="max-width: 500px;">
+            <input type="text" class="form-control" @bind="searchId" placeholder="ใส่รหัส HosGuid ของคนไข้..." />
+            <button class="btn btn-primary" @onclick="SearchPatientById">ค้นหา</button>
+        </div>
+
+        @if (singlePatient != null)
+        {
+            <div class="alert alert-success m-0">
+                <strong>พบข้อมูลคนไข้:</strong> <br />
+                HN: @(singlePatient.Hn ?? "-") | 
+                ชื่อ-นามสกุล: @singlePatient.Pname@singlePatient.Fname @singlePatient.Lname <br />
+                สิทธิ์การรักษา: @(singlePatient.Pttype ?? "-") | เบอร์โทรศัพท์: @(singlePatient.MobilePhoneNumber ?? "-")
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger m-0">@errorMessage</div>
+        }
+    </div>
+
+    <!-- ส่วนที่ 2: แสดงรายการคิวทั้งหมด -->
+    <div class="card card-body shadow-sm">
+        <h5 class="card-title">📋 รายการคนไข้ในคิวทั้งหมด</h5>
+        
+        @if (patients == null)
+        {
+            <div class="d-flex align-items-center">
+                <strong class="text-primary">กำลังโหลดข้อมูลคนไข้...</strong>
+                <div class="spinner-border ms-auto text-primary" role="status" aria-hidden="true"></div>
+            </div>
+        }
+        else if (patients.Length == 0)
+        {
+            <p class="text-muted m-0">ไม่มีข้อมูลคนไข้ในคิวในขณะนี้</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>HN</th>
+                            <th>ชื่อ - นามสกุล</th>
+                            <th>สิทธิ์การรักษา</th>
+                            <th>เบอร์โทรศัพท์</th>
+                            <th>อัปเดตล่าสุด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var patient in patients)
+                        {
+                            <tr>
+                                <td><span class="badge bg-secondary">@(patient.Hn ?? "-")</span></td>
+                                <td>@patient.Pname@patient.Fname @patient.Lname</td>
+                                <td>@(patient.Pttype ?? "-")</td>
+                                <td>@(patient.MobilePhoneNumber ?? "-")</td>
+                                <td>@(patient.LastUpdate?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private Patient[]? patients;
+    private Patient? singlePatient;
+    private string searchId = "";
+    private string errorMessage = "";
+
+    // เมธอดดึงข้อมูลทั้งหมดเมื่อเข้าหน้าเว็บ
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // เรียกไปยัง Endpoint: api/Customer/GetQueueAll
+            patients = await Http.GetFromJsonAsync<Patient[]>("api/Customer/GetQueueAll");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching data: {ex.Message}");
+        }
+    }
+
+    // ฟังก์ชันดึงข้อมูลแบบระบุ ID (HosGuid)
+    private async Task SearchPatientById()
+    {
+        if (string.IsNullOrWhiteSpace(searchId)) return;
+
+        singlePatient = null;
+        errorMessage = "";
+
+        try
+        {
+            // เรียกไปยัง Endpoint: api/Customer/GetQueueById/{id}
+            var response = await Http.GetAsync($"api/Customer/GetQueueById/{searchId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                singlePatient = await response.Content.ReadFromJsonAsync<Patient>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                errorMessage = $"❌ ไม่พบข้อมูลคนไข้ที่มีรหัส: {searchId}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อ Backend: {ex.Message}";
+        }
+    }
+
+    // ตัวแปรโมเดล Patient ฝั่ง Frontend (กรองเฉพาะฟิลด์ที่สำคัญมาแสดงผล)
+    public class Patient
+    {
+        public string HosGuid { get; set; } = null!;
+        public string? Hn { get; set; }
+        public string? Pname { get; set; }
+        public string? Fname { get; set; }
+        public string? Lname { get; set; }
+        public string? Pttype { get; set; }
+        public string? MobilePhoneNumber { get; set; }
+        public DateTime? LastUpdate { get; set; }
+    }
+}
